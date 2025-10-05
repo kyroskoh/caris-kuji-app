@@ -5,6 +5,7 @@ import { executeDraw } from "../../utils/randomDraw.js";
 import { tierChipClass } from "../../utils/tierColors.js";
 import ResultCard from "./ResultCard.jsx";
 import HistoryPanel from "./HistoryPanel.jsx";
+import ScratchCard from "./ScratchCard.jsx";
 
 const createId = () => (globalThis.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2));
 
@@ -56,6 +57,8 @@ export default function DrawScreen() {
   const [sessionNumber, setSessionNumber] = useState(1);
   const [lastDrawInfo, setLastDrawInfo] = useState(null);
   const [isHistoryOpen, setHistoryOpen] = useState(false);
+  const [useScratchMode, setUseScratchMode] = useState(false);
+  const [revealedResults, setRevealedResults] = useState(new Set());
 
   useEffect(() => {
     let mounted = true;
@@ -319,7 +322,10 @@ export default function DrawScreen() {
           <button
             type="button"
             className="bg-slate-800 text-slate-200"
-            onClick={() => setResults([])}
+            onClick={() => {
+              setResults([]);
+              setRevealedResults(new Set());
+            }}
           >
             Clear Results
           </button>
@@ -329,6 +335,14 @@ export default function DrawScreen() {
             onClick={openHistory}
           >
             History ({history.length})
+          </button>
+          <button
+            type="button"
+            className={useScratchMode ? "bg-purple-600 text-white" : "bg-slate-800 text-slate-200"}
+            onClick={() => setUseScratchMode(!useScratchMode)}
+            title="Toggle scratch card mode"
+          >
+            {useScratchMode ? "🪙 Scratch Mode ON" : "⚡ Instant Reveal"}
           </button>
         </div>
         {error && <p className="mt-3 text-sm text-red-400">{error}</p>}
@@ -402,7 +416,21 @@ export default function DrawScreen() {
                 exit={{ opacity: 0, scale: 0.9 }}
                 transition={{ type: "spring", stiffness: 320, damping: 26 }}
               >
-                <ResultCard drawIndex={item.drawIndex} prize={item.prize} tierColors={tierColors} />
+                {useScratchMode && !revealedResults.has(item.id) ? (
+                  <ScratchCard
+                    prizeContent={
+                      <ResultCard drawIndex={item.drawIndex} prize={item.prize} tierColors={tierColors} />
+                    }
+                    onComplete={() => {
+                      setRevealedResults(new Set(revealedResults.add(item.id)));
+                    }}
+                    width={400}
+                    height={250}
+                    enabled={true}
+                  />
+                ) : (
+                  <ResultCard drawIndex={item.drawIndex} prize={item.prize} tierColors={tierColors} />
+                )}
               </motion.div>
             ))}
           </AnimatePresence>
